@@ -6,18 +6,18 @@ const { v4: uuidv4, v5: uuidv5 } = require('uuid');
 const { generateCursorBody, chunkToUtf8String, generateHashed64Hex, generateCursorChecksum } = require('../utils/utils.js');
 
 import { fetch, ProxyAgent } from 'undici';
-import { AUTHORIZATION, COOKIES, PROXIES } from '../config/config.js';
+const config = require('../config/config.js');
 let requestsPoll = 0;
 
 router.get("/models", async (req, res) => {
   try{
     let bearerToken = req.headers.authorization?.replace('Bearer ', '');
     let proxy = undefined;
-    if(authToken === AUTHORIZATION) {
+    if(authToken === config.AUTHORIZATION) {
       requestsPoll += 1;
-      authToken = COOKIES[requestsPoll % COOKIES.length];
-      if(PROXIES.length > 0)
-        proxy = new ProxyAgent(PROXIES[requestsPoll % PROXIES.length]);
+      authToken = config.COOKIES[requestsPoll % config.COOKIES.length];
+      if(config.PROXIES.length > 0)
+        proxy = new ProxyAgent(config.PROXIES[requestsPoll % config.PROXIES.length]);
     }
 
     let authToken = bearerToken.split(',').map((key) => key.trim())[0];
@@ -88,11 +88,11 @@ router.post('/chat/completions', async (req, res) => {
     const { model, messages, stream = false } = req.body;
     let bearerToken = req.headers.authorization?.replace('Bearer ', '');
     let proxy = undefined;
-    if(authToken === AUTHORIZATION) {
+    if(authToken === config.AUTHORIZATION) {
       requestsPoll += 1;
-      authToken = COOKIES[requestsPoll % COOKIES.length];
-      if (PROXIES.length > 0)
-        proxy = new ProxyAgent(PROXIES[requestsPoll % PROXIES.length]);
+      authToken = config.COOKIES[requestsPoll % config.COOKIES.length];
+      if (config.PROXIES.length > 0)
+        proxy = new ProxyAgent(config.PROXIES[requestsPoll % config.PROXIES.length]);
     }
 
     const keys = bearerToken.split(',').map((key) => key.trim());
