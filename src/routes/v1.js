@@ -6,7 +6,7 @@ const { v4: uuidv4, v5: uuidv5 } = require('uuid');
 const { generateCursorBody, chunkToUtf8String, generateHashed64Hex, generateCursorChecksum } = require('../utils/utils.js');
 
 import { fetch, ProxyAgent } from 'undici';
-import { AUTHORIZATION, COOKIES, PROXIES } from './config.js';
+import { AUTHORIZATION, COOKIES, PROXIES } from '../config/config.js';
 let requestsPoll = 0;
 
 router.get("/models", async (req, res) => {
