@@ -12,6 +12,7 @@ let requestsPoll = 0;
 router.get("/models", async (req, res) => {
   try{
     let bearerToken = req.headers.authorization?.replace('Bearer ', '');
+    let authToken = bearerToken.split(',').map((key) => key.trim())[0];
     let proxy = undefined;
     if(authToken === config.AUTHORIZATION) {
       requestsPoll += 1;
@@ -20,7 +21,6 @@ router.get("/models", async (req, res) => {
         proxy = new undici.ProxyAgent(config.PROXIES[requestsPoll % config.PROXIES.length]);
     }
 
-    let authToken = bearerToken.split(',').map((key) => key.trim())[0];
     if (authToken && authToken.includes('%3A%3A')) {
       authToken = authToken.split('%3A%3A')[1];
     }
@@ -87,6 +87,11 @@ router.post('/chat/completions', async (req, res) => {
   try {
     const { model, messages, stream = false } = req.body;
     let bearerToken = req.headers.authorization?.replace('Bearer ', '');
+    const keys = bearerToken.split(',').map((key) => key.trim());
+
+    // Randomly select one key to use
+    let authToken = keys[Math.floor(Math.random() * keys.length)];
+
     let proxy = undefined;
     if(authToken === config.AUTHORIZATION) {
       requestsPoll += 1;
@@ -94,11 +99,6 @@ router.post('/chat/completions', async (req, res) => {
       if (config.PROXIES.length > 0)
         proxy = new undici.ProxyAgent(config.PROXIES[requestsPoll % config.PROXIES.length]);
     }
-
-    const keys = bearerToken.split(',').map((key) => key.trim());
-
-    // Randomly select one key to use
-    let authToken = keys[Math.floor(Math.random() * keys.length)]
 
     if (authToken && authToken.includes('%3A%3A')) {
       authToken = authToken.split('%3A%3A')[1];
