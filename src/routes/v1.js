@@ -5,9 +5,21 @@ const $root = require('../proto/message.js');
 const { v4: uuidv4, v5: uuidv5 } = require('uuid');
 const { generateCursorBody, chunkToUtf8String, generateHashed64Hex, generateCursorChecksum } = require('../utils/utils.js');
 
+import { fetch, ProxyAgent } from 'undici';
+import { AUTHORIZATION, COOKIES, PROXIES } from './config.js';
+let requestsPoll = 0;
+
 router.get("/models", async (req, res) => {
   try{
     let bearerToken = req.headers.authorization?.replace('Bearer ', '');
+    let proxy = undefined;
+    if(authToken === AUTHORIZATION) {
+      requestsPoll += 1;
+      authToken = COOKIES[requestsPoll % COOKIES.length];
+      if(PROXIES.length > 0)
+        proxy = new ProxyAgent(PROXIES[requestsPoll % PROXIES.length]);
+    }
+
     let authToken = bearerToken.split(',').map((key) => key.trim())[0];
     if (authToken && authToken.includes('%3A%3A')) {
       authToken = authToken.split('%3A%3A')[1];
@@ -35,6 +47,7 @@ router.get("/models", async (req, res) => {
         'x-ghost-mode': 'true',
         'Host': 'api2.cursor.sh',
       },
+      dispatcher: proxy,
     })
     const data = await availableModelsResponse.arrayBuffer();
     const buffer = Buffer.from(data);
@@ -74,6 +87,14 @@ router.post('/chat/completions', async (req, res) => {
   try {
     const { model, messages, stream = false } = req.body;
     let bearerToken = req.headers.authorization?.replace('Bearer ', '');
+    let proxy = undefined;
+    if(authToken === AUTHORIZATION) {
+      requestsPoll += 1;
+      authToken = COOKIES[requestsPoll % COOKIES.length];
+      if (PROXIES.length > 0)
+        proxy = new ProxyAgent(PROXIES[requestsPoll % PROXIES.length]);
+    }
+
     const keys = bearerToken.split(',').map((key) => key.trim());
 
     // Randomly select one key to use
@@ -85,6 +106,7 @@ router.post('/chat/completions', async (req, res) => {
     else if (authToken && authToken.includes('::')) {
       authToken = authToken.split('::')[1];
     }
+    
 
     if (!messages || !Array.isArray(messages) || messages.length === 0 || !authToken) {
       return res.status(400).json({
@@ -119,6 +141,7 @@ router.post('/chat/completions', async (req, res) => {
         "x-session-id": sessionid,
         'Host': 'api2.cursor.sh',
       },
+      dispatcher: proxy,
     })
 
     const cursorBody = generateCursorBody(messages, model);
@@ -145,7 +168,8 @@ router.post('/chat/completions', async (req, res) => {
       timeout: {
         connect: 5000,
         read: 30000
-      }
+      },
+      dispatcher: proxy,
     });
 
     if (stream) {
