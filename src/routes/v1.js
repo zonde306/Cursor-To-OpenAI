@@ -5,7 +5,7 @@ const $root = require('../proto/message.js');
 const { v4: uuidv4, v5: uuidv5 } = require('uuid');
 const { generateCursorBody, chunkToUtf8String, generateHashed64Hex, generateCursorChecksum } = require('../utils/utils.js');
 
-import { fetch, ProxyAgent } from 'undici';
+const undici = require('undici');
 const config = require('../config/config.js');
 let requestsPoll = 0;
 
@@ -17,7 +17,7 @@ router.get("/models", async (req, res) => {
       requestsPoll += 1;
       authToken = config.COOKIES[requestsPoll % config.COOKIES.length];
       if(config.PROXIES.length > 0)
-        proxy = new ProxyAgent(config.PROXIES[requestsPoll % config.PROXIES.length]);
+        proxy = new undici.ProxyAgent(config.PROXIES[requestsPoll % config.PROXIES.length]);
     }
 
     let authToken = bearerToken.split(',').map((key) => key.trim())[0];
@@ -33,7 +33,7 @@ router.get("/models", async (req, res) => {
       ?? generateCursorChecksum(authToken.trim());
     const cursorClientVersion = "0.45.11"
 
-    const availableModelsResponse = await fetch("https://api2.cursor.sh/aiserver.v1.AiService/AvailableModels", {
+    const availableModelsResponse = await undici.fetch("https://api2.cursor.sh/aiserver.v1.AiService/AvailableModels", {
       method: 'POST',
       headers: {
         'accept-encoding': 'gzip',
@@ -92,7 +92,7 @@ router.post('/chat/completions', async (req, res) => {
       requestsPoll += 1;
       authToken = config.COOKIES[requestsPoll % config.COOKIES.length];
       if (config.PROXIES.length > 0)
-        proxy = new ProxyAgent(config.PROXIES[requestsPoll % config.PROXIES.length]);
+        proxy = new undici.ProxyAgent(config.PROXIES[requestsPoll % config.PROXIES.length]);
     }
 
     const keys = bearerToken.split(',').map((key) => key.trim());
@@ -123,7 +123,7 @@ router.post('/chat/completions', async (req, res) => {
     const cursorClientVersion = "0.45.11"
 
     // Request the AvailableModels before StreamChat.
-    const availableModelsResponse = await fetch("https://api2.cursor.sh/aiserver.v1.AiService/AvailableModels", {
+    const availableModelsResponse = await undici.fetch("https://api2.cursor.sh/aiserver.v1.AiService/AvailableModels", {
       method: 'POST',
       headers: {
         'accept-encoding': 'gzip',
@@ -145,7 +145,7 @@ router.post('/chat/completions', async (req, res) => {
     })
 
     const cursorBody = generateCursorBody(messages, model);
-    const response = await fetch('https://api2.cursor.sh/aiserver.v1.AiService/StreamChat', {
+    const response = await undici.fetch('https://api2.cursor.sh/aiserver.v1.AiService/StreamChat', {
       method: 'POST',
       headers: {
         'authorization': `Bearer ${authToken}`,
